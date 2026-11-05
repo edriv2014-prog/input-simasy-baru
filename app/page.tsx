@@ -106,16 +106,40 @@ export default function Page() {
       setErrorMsg(err.message || "Error fetch");
     } finally { setLoading(false); }
   };
-
 const openSimasy = () => {
   if (!data?.nik) return;
-  localStorage.setItem("SIMASY_KTP_DATA", JSON.stringify(data));
   
-  // fianggota1_u.php butuh txt_noktp (line 4) + statuskirim (line 10)
-  const nik16 = (data.nik || "").replace(/\D/g, "").slice(0,16); // pastikan 16 digit angka doang
-  const url = `https://simasy.id/u/fianggota1_u.php?txt_noktp=${nik16}&nik=${nik16}&txt_noktp1=${nik16}&no_anggota=${encodeURIComponent(data.no_anggota || "")}&statuskirim=1&autofill=1`;
+  const nik16 = (data.nik || "").replace(/\D/g, "").slice(0,16);
   
-  window.open(url, "_blank");
+  // Bikin form POST ke simasy.id
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = "https://simasy.id/u/fianggota1_u.php";
+  form.target = "_blank";
+  
+  const fields: any = {
+    txt_noktp: nik16,
+    txt_noktp1: nik16,
+    nik: nik16,
+    no_anggota: data.no_anggota || "",
+    txt_no_anggota: data.no_anggota || "",
+    statuskirim: "1",
+    autofill: "1",
+    nama: data.nama || "",
+    alamat: data.alamat || "",
+  };
+  
+  for (const key in fields) {
+    const input = document.createElement("input");
+    input.type = "hidden";
+    input.name = key;
+    input.value = fields[key];
+    form.appendChild(input);
+  }
+  
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
 };
 
   return (
