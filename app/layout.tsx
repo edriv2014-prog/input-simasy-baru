@@ -1,0 +1,1 @@
+export default function L({children}:{children:any}){return <html><body style={{margin:0,fontFamily:'sans-serif',background:'#f6fbf8'}}>{children}</body></html>}
