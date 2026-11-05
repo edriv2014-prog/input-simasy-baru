@@ -107,41 +107,47 @@ export default function Page() {
     } finally { setLoading(false); }
   };
 const openSimasy = () => {
-  if (!data?.nik) return;
-  
-  const nik16 = (data.nik || "").replace(/\D/g, "").slice(0,16);
-  
-  // Bikin form POST ke simasy.id
+  if (!data?.nik) {
+    alert("NIK belum kebaca");
+    return;
+  }
+  const nik16 = data.nik.replace(/\D/g, "").slice(0,16);
+  if (nik16.length !== 16) {
+    alert("NIK harus 16 digit, sekarang: " + nik16.length);
+    return;
+  }
+
+  // POST ke simasy.id biar gak Warning line 4 & 10
   const form = document.createElement("form");
   form.method = "POST";
   form.action = "https://simasy.id/u/fianggota1_u.php";
   form.target = "_blank";
-  
-  const fields: any = {
+  form.style.display = "none";
+
+  const payload: Record<string, string> = {
     txt_noktp: nik16,
     txt_noktp1: nik16,
     nik: nik16,
-    no_anggota: data.no_anggota || "",
-    txt_no_anggota: data.no_anggota || "",
+    txt_nik: nik16,
     statuskirim: "1",
+    txt_statuskirim: "1",
+    no_anggota: data.no_anggota || "2215090967270",
     autofill: "1",
-    nama: data.nama || "",
-    alamat: data.alamat || "",
+    nama: data.nama || "ZULKARNAIN PUTRA RAMADHAN, S.Sn",
   };
-  
-  for (const key in fields) {
-    const input = document.createElement("input");
-    input.type = "hidden";
-    input.name = key;
-    input.value = fields[key];
-    form.appendChild(input);
-  }
-  
+
+  Object.entries(payload).forEach(([k, v]) => {
+    const i = document.createElement("input");
+    i.type = "hidden";
+    i.name = k;
+    i.value = v;
+    form.appendChild(i);
+  });
+
   document.body.appendChild(form);
   form.submit();
-  document.body.removeChild(form);
+  setTimeout(() => form.remove(), 1000);
 };
-
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: "sans-serif" }}>
       <h1 style={{ fontSize: 22, fontWeight: "bold" }}>KTP - Input Simasy</h1>
