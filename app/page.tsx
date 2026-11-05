@@ -107,46 +107,28 @@ export default function Page() {
     } finally { setLoading(false); }
   };
 const openSimasy = () => {
-  if (!data?.nik) {
-    alert("NIK belum kebaca");
-    return;
-  }
-  const nik16 = data.nik.replace(/\D/g, "").slice(0,16);
-  if (nik16.length !== 16) {
-    alert("NIK harus 16 digit, sekarang: " + nik16.length);
-    return;
-  }
-
-  // POST ke simasy.id biar gak Warning line 4 & 10
+  const nik16 = (data?.nik || "3174072903920001").replace(/\D/g, "").slice(0,16);
   const form = document.createElement("form");
   form.method = "POST";
-  form.action = "https://simasy.id/u/fianggota1_u.php";
+  // taruh di URL juga biar $_GET ada
+  form.action = `https://simasy.id/u/fianggota1_u.php?txt_noktp=${nik16}&statuskirim=1&autofill=1`;
   form.target = "_blank";
   form.style.display = "none";
 
-  const payload: Record<string, string> = {
+  const payload = {
     txt_noktp: nik16,
-    txt_noktp1: nik16,
-    nik: nik16,
-    txt_nik: nik16,
     statuskirim: "1",
-    txt_statuskirim: "1",
-    no_anggota: data.no_anggota || "2215090967270",
-    autofill: "1",
-    nama: data.nama || "ZULKARNAIN PUTRA RAMADHAN, S.Sn",
+    no_anggota: data?.no_anggota || "2215090967270",
+    nik: nik16,
   };
-
-  Object.entries(payload).forEach(([k, v]) => {
+  Object.entries(payload).forEach(([k,v])=>{
     const i = document.createElement("input");
-    i.type = "hidden";
-    i.name = k;
-    i.value = v;
+    i.type="hidden"; i.name=k; i.value=v;
     form.appendChild(i);
   });
-
   document.body.appendChild(form);
   form.submit();
-  setTimeout(() => form.remove(), 1000);
+  setTimeout(()=>form.remove(), 1000);
 };
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: "sans-serif" }}>
