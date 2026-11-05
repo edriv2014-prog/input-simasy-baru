@@ -107,12 +107,16 @@ export default function Page() {
     } finally { setLoading(false); }
   };
 
-  const openSimasy = () => {
-    if (!data?.nik) return;
-    localStorage.setItem("SIMASY_KTP_DATA", JSON.stringify(data));
-    const url = `https://simasy.id/u/fianggota1_u.php?nik=${encodeURIComponent(data.nik)}&no_anggota=${encodeURIComponent(data.no_anggota || "")}&autofill=1`;
-    window.open(url, "_blank");
-  };
+const openSimasy = () => {
+  if (!data?.nik) return;
+  localStorage.setItem("SIMASY_KTP_DATA", JSON.stringify(data));
+  
+  // fianggota1_u.php butuh txt_noktp (line 4) + statuskirim (line 10)
+  const nik16 = (data.nik || "").replace(/\D/g, "").slice(0,16); // pastikan 16 digit angka doang
+  const url = `https://simasy.id/u/fianggota1_u.php?txt_noktp=${nik16}&nik=${nik16}&txt_noktp1=${nik16}&no_anggota=${encodeURIComponent(data.no_anggota || "")}&statuskirim=1&autofill=1`;
+  
+  window.open(url, "_blank");
+};
 
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: "sans-serif" }}>
