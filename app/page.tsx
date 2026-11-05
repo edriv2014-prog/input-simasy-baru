@@ -22,33 +22,31 @@ type KtpData = {
 
 // Kompres gambar di browser sebelum upload biar <4MB
 async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
       const canvas = document.createElement("canvas");
       let w = img.width, h = img.height;
-      const maxDim = 1600; // max 1600px
+      const maxDim = 2500; // jangan 1600, buat OCR butuh besar
       if (w > maxDim || h > maxDim) {
         if (w > h) { h = (h / w) * maxDim; w = maxDim; }
         else { w = (w / h) * maxDim; h = maxDim; }
       }
       canvas.width = w;
       canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) { resolve(file); return; }
+      const ctx = canvas.getContext("2d")!;
+      // bantu OCR: tambah kontras + grayscale
+      ctx.filter = "contrast(1.2) brightness(1.1) grayscale(0.2)";
       ctx.drawImage(img, 0, 0, w, h);
       canvas.toBlob((blob) => {
         if (!blob) { resolve(file); return; }
-        const newFile = new File([blob], file.name, { type: "image/jpeg" });
-        console.log(`Kompres: ${(file.size/1024/1024).toFixed(2)}MB -> ${(newFile.size/1024/1024).toFixed(2)}MB`);
-        resolve(newFile);
-      }, "image/jpeg", 0.7); // quality 70%
+        resolve(new File([blob], file.name, { type: "image/jpeg" }));
+      }, "image/jpeg", 0.92); // jangan 0.7, pakai 0.92 biar gak pecah
     };
     img.onerror = () => resolve(file);
     img.src = URL.createObjectURL(file);
   });
 }
-
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
