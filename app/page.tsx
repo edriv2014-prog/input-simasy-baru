@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 type KtpData = {
   nik?: string;
@@ -134,7 +134,7 @@ export default function Page() {
   return (
     <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: "sans-serif" }}>
       <h1 style={{ fontSize: 22, fontWeight: "bold" }}>KTP - Input Simasy</h1>
-      <p style={{ color: "#555", fontSize: 12 }}>FIX v10: auto-kompres <4MB + RT/RW 003 / 010 fix + Kel/Desa PONDOK KELAPA/LAGOA + tombol hitam di website anti-loop</p>
+      <p>FIX v10: auto-kompres &lt;4MB + RT/RW 003 / 010 fix + Kel/Desa PONDOK KELAPA/LAGOA + tombol hitam di website anti-loop</p>
 
       <div style={{ border: "1px solid #ccc", padding: 15, borderRadius: 8, marginTop: 15 }}>
         <input type="file" accept="image/*" onChange={handleFileChange} />
