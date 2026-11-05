@@ -110,7 +110,7 @@ export default function Page() {
   const openSimasy = () => {
     if (!data?.nik) return;
     localStorage.setItem("SIMASY_KTP_DATA", JSON.stringify(data));
-    const url = `https://simasy.id/u/fianggota0_u.php?nik=${encodeURIComponent(data.nik)}&no_anggota=${encodeURIComponent(data.no_anggota || "")}&autofill=1`;
+    const url = `https://simasy.id/u/fianggota1_u.php?nik=${encodeURIComponent(data.nik)}&no_anggota=${encodeURIComponent(data.no_anggota || "")}&autofill=1`;
     window.open(url, "_blank");
   };
 
