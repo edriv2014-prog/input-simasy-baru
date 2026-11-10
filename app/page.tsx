@@ -33,7 +33,7 @@ const EMPTY: KTPData = {
 
 const LS_KEY = "MASYUMI_KTP_DATA";
 
-// v5.3 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
+// v5.3.1 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
 // KNOWN = fallback terverifikasi untuk 5 KTP bermasalah, bukan batas. KTP baru: ketik NIK -> TTL+JK auto, isi Alamat manual.
 const KNOWN_MASYUMI: Record<string, Partial<KTPData>> = {
   "3276100210940003": { nama: "TOMMY FAISAL", ttl: "JAKARTA, 10/02/1994 (pos7-8=02)", jk: "LAKI-LAKI", alamat: "JL. H GEMONO NO.41", rt_rw: "003/001", kel: "PONDOK KELAPA", kec: "DUREN SAWIT", agama: "ISLAM", status: "KAWIN", kerja: "KARYAWAN SWASTA" },
@@ -99,9 +99,9 @@ function parseKTP(rawText: string, fileName: string): KTPData {
   return parsed;
 }
 
-// v5.3 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
-// v5.0-v5.2 kirim 1800px (<1MB) JPEG 0.95 -> file 2-3MB -> DITOLAK server -> NIK=- !
-// v5.3: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
+// v5.3.1 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
+// v5.0-v5.2 kirim 1800px (di bawah 1MB) JPEG 0.95 -> file 2-3MB -> DITOLAK server -> NIK=- !
+// v5.3.1: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
 function make3000Canvas(img: HTMLImageElement, cropX: number, cropY: number, cropW: number, cropH: number, enhance: boolean): string {
   const TARGET_W = 1800;
   const scale = TARGET_W / cropW;
@@ -193,7 +193,7 @@ export default function Page() {
     if (mFile && KNOWN_MASYUMI[mFile[0]]) {
       const early = applyKnown(mFile[0], { ...EMPTY, nik: mFile[0], raw_text: "Dari nama file + KNOWN" });
       setData(early);
-      setCropInfo("✅ v5.3 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
+      setCropInfo("✅ v5.3.1 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
       setLoading(false);
       return;
     }
@@ -205,7 +205,7 @@ export default function Page() {
     if (selectedMode === "GABUNGAN") {
       // MODE GABUNGAN: KTP kiri kecil + KTA kanan besar -> WAJIB CROP KIRI, jangan OCR FULL!
       setOcrSteps(["Foto: " + w + "x" + h + " - MODE GABUNGAN KTP+KTA (pilihan user, bukan deteksi otomatis)"]);
-      setOcrSteps((prev) => [...prev, "STEP 1: CROP KIRI 0-38% (KTP di kiri!) + ENLARGE 1800px (<1MB) + ENHANCE - KTA kanan DIBUANG!"]);
+      setOcrSteps((prev) => [...prev, "STEP 1: CROP KIRI 0-38% (KTP di kiri!) + ENLARGE 1800px (di bawah 1MB) + ENHANCE - KTA kanan DIBUANG!"]);
       const cropKiriUrl = make3000Canvas(img, 0, 0, w * 0.38, h * 0.55, true);
       setPreview(cropKiriUrl);
       const textKiri = await callOCRWithFallback(cropKiriUrl, "CROP KIRI");
@@ -231,11 +231,11 @@ export default function Page() {
       if (parsedKiri.kel) finalWithKnown.kel = parsedKiri.kel;
       if (parsedKiri.kec) finalWithKnown.kec = parsedKiri.kec;
       setData(finalWithKnown); setRaw(combinedText || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG!");
-      setCropInfo("✅ v5.3 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.3.1 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     } else {
-      // MODE KTP SAJA v5.3: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
+      // MODE KTP SAJA v5.3.1: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
       setOcrSteps(["Foto: " + w + "x" + h + " - MODE KTP SAJA (pilihan user) - TANPA CROP!"]);
-      setOcrSteps((prev) => [...prev, "STEP 1: OCR FULL 1800px (<1MB) - SAMA KAYAK REGISTRASI! + ENHANCE (contrast 1.5 - SAMA KAYAK GABUNGAN!)"]);
+      setOcrSteps((prev) => [...prev, "STEP 1: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + ENHANCE (contrast 1.5 - SAMA KAYAK GABUNGAN!)"]);
       const fullUrl = make3000Canvas(img, 0, 0, w, h, true);
       setPreview(fullUrl);
       const textFull = await callOCRWithFallback(fullUrl, "FULL-ENHANCE");
@@ -259,7 +259,7 @@ export default function Page() {
       setOcrSteps((prev) => [...prev, "FULL: NIK=" + (parsedFull.nik || "-") + " Nama=" + (parsedFull.nama || "-") + " Alamat=" + (parsedFull.alamat || "-") + " RT=" + (parsedFull.rt_rw || "-") + " JK=" + (parsedFull.jk || "-")]);
       const finalWithKnown = parsedFull.nik ? applyKnown(parsedFull.nik, parsedFull) : parsedFull;
       setData(finalWithKnown); setRaw(textFull || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG / ketik NIK 3276100210940003!");
-      setCropInfo("✅ v5.3 KTP SAJA: OCR FULL 1800px (<1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.3.1 KTP SAJA: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     }
     setLoading(false);
   };
@@ -310,15 +310,15 @@ export default function Page() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
       <div style={{ background: "#000", color: "#fff", padding: 14, borderRadius: 12, textAlign: "center" }}>
         <div style={{ fontSize: 22, fontWeight: "bold", letterSpacing: 2 }}>PARTAI MASYUMI</div>
-        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.3 NEXT.JS</div>
-        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.3: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE < 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
+        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.3.1 NEXT.JS</div>
+        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.3.1: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE di bawah 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
       </div>
       <div style={{ background: "#FFF3CD", padding: 10, borderRadius: 8, fontSize: 12, marginTop: 12 }}>
         <b>Pilih dulu jenis foto-nya, baru upload!</b>
         <br />
         <b>GABUNGAN KTP+KTA</b> = KTP kiri kecil + KTA kanan besar (KUKUH / ZULKARNAIN / YULI gabung) → Auto CROP KIRI 0-38%!
         <br />
-        <b>KTP SAJA</b> = KTP saja, BESAR & JELAS (TOMMY / MAD ADAM) → OCR FULL 1800px (<1MB) - SAMA KAYAK REGISTRASI! + ENHANCE, 3x RETRY, TANPA CROP!
+        <b>KTP SAJA</b> = KTP saja, BESAR & JELAS (TOMMY / MAD ADAM) → OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + ENHANCE, 3x RETRY, TANPA CROP!
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 12 }}>
         <button onClick={() => onPickFile("GABUNGAN")} style={{ background: "#000", color: "#fff", padding: 18, borderRadius: 12, fontWeight: "bold", fontSize: 15, cursor: "pointer", border: mode === "GABUNGAN" ? "4px solid #FFD700" : "2px solid #000" }}>
@@ -333,7 +333,7 @@ export default function Page() {
           <br />
           KTP SAJA
           <br />
-          <small style={{ fontWeight: "normal", opacity: 0.7 }}>KTP saja, BESAR & JELAS<br />→ OCR FULL 1800px (<1MB) - SAMA KAYAK REGISTRASI! + ENHANCE, 3x RETRY, TANPA CROP</small>
+          <small style={{ fontWeight: "normal", opacity: 0.7 }}>KTP saja, BESAR & JELAS<br />→ OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + ENHANCE, 3x RETRY, TANPA CROP</small>
         </button>
       </div>
       <input key={fileKey} ref={fileInputRef} type="file" accept="image/*" onChange={(e) => e.target.files && handleFile(e.target.files[0], modeRef.current)} style={{ display: "none" }} />
@@ -351,8 +351,8 @@ export default function Page() {
       </div>
       {cropInfo && <p style={{ fontSize: 12, background: "#e8fff4", padding: 8, borderRadius: 8, marginTop: 10 }}>{cropInfo}</p>}
       {ocrSteps.length > 0 && (<div style={{ fontSize: 11, background: "#FFF3CD", padding: 8, borderRadius: 8, marginBottom: 8, marginTop: 10 }}>{ocrSteps.map((s, i) => (<div key={i}>• {s}</div>))}</div>)}
-      {loading && <p>⏳ OCR 1800px (<1MB, sama kayak registrasi)... (Server dulu, kalau kosong → Tesseract di browser...) {mode === "GABUNGAN" ? "CROP KIRI dulu, baru OCR..." : "OCR FULL, tanpa crop..."}</p>}
-      {preview && <img src={preview} style={{ maxWidth: "100%", border: "3px solid #0f8a5f", borderRadius: 10, marginTop: 10 }} alt="KTP 1800px (<1MB)" />}
+      {loading && <p>⏳ OCR 1800px (di bawah 1MB, sama kayak registrasi)... (Server dulu, kalau kosong → Tesseract di browser...) {mode === "GABUNGAN" ? "CROP KIRI dulu, baru OCR..." : "OCR FULL, tanpa crop..."}</p>}
+      {preview && <img src={preview} style={{ maxWidth: "100%", border: "3px solid #0f8a5f", borderRadius: 10, marginTop: 10 }} alt="KTP 1800px (di bawah 1MB)" />}
       <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 8, marginTop: 14, border: "2px solid #000", padding: 14, borderRadius: 12, background: "#FFFEF0" }}>
         <b>NIK (16 digit):</b>
         <div style={{ display: "flex", gap: 6 }}>
