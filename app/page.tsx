@@ -1,125 +1,32 @@
-"use client";
-import { useEffect, useState } from "react";
 
-type KtpData = {
-  nik?: string; nama?: string; tempat_tgl_lahir?: string;
-  alamat?: string; rt_rw?: string; kel_desa?: string;
-  kecamatan?: string; no_anggota?: string; raw_text?: string;
-};
-
-async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let w = img.width, h = img.height;
-      const maxDim = 3000;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = (h / w) * maxDim; w = maxDim; }
-        else { w = (w / h) * maxDim; h = maxDim; }
-      }
-      canvas.width = w; canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      ctx.filter = "contrast(1.4) brightness(1.15) grayscale(0.2)";
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob((b) => {
-        if (!b) { resolve(file); return; }
-        resolve(new File([b], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.95);
-    };
-    img.onerror = () => resolve(file);
-    img.src = URL.createObjectURL(file);
-  });
+'use client';
+import { useState, useRef } from 'react';
+type KTPData = { nik:string; nama:string; ttl:string; jk:string; alamat:string; rt_rw:string; kel:string; kec:string; agama:string; status:string; kerja:string; raw_text:string; };
+const EMPTY: KTPData = { nik:'', nama:'', ttl:'', jk:'', alamat:'', rt_rw:'', kel:'', kec:'', agama:'', status:'', kerja:'', raw_text:'' };
+const LS_KEY = 'MASYUMI_KTP_DATA'; // MASYUMI ONLY - bukan SIMASY_KTP_DATA biar gak ketuker Koperasi/Puskesmas
+function ttlFromNIK(nik:string, tempat:string){
+  tempat=tempat||'JAKARTA';
+  if(!nik||nik.length!==16) return tempat?`${tempat}, (MM/DD/TTTT)`:'(MM/DD/TTTT)';
+  let ddRaw=parseInt(nik.substring(6,8),10); let mm=parseInt(nik.substring(8,10),10); let yy=parseInt(nik.substring(10,12),10);
+  if(isNaN(ddRaw)||isNaN(mm)||isNaN(yy)) return tempat;
+  let isWanita=ddRaw>40; let dd=isWanita?ddRaw-40:ddRaw; let yyyy=yy<=26?2000+yy:1900+yy;
+  return `${tempat}, ${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}/${yyyy} (pos7-8=${String(ddRaw).padStart(2,'0')}${isWanita?` -40=${String(dd).padStart(2,'0')} wanita`:''})`;
 }
-
-export default function Page() {
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [data, setData] = useState<KtpData | null>(null);
-  const [rawOcr, setRawOcr] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [mode] = useState<"ktp_kta">("ktp_kta");
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] || null;
-    setFile(f); setData(null); setRawOcr(""); setErrorMsg("");
-    if (f) setPreview(URL.createObjectURL(f));
-  };
-
-  const handleUpload = async () => {
-    if (!file) return;
-    setLoading(true); setErrorMsg(""); setData(null);
-    try {
-      let uploadFile = file;
-      if (file.size > 3.8 * 1024 * 1024 || file.size < 0.5 * 1024 * 1024) {
-        uploadFile = await compressImage(file);
-      }
-      const form = new FormData();
-      form.append("file", uploadFile);
-      form.append("mode", mode);
-      const res = await fetch("/api/ktp", { method: "POST", body: form });
-      const json = await res.json();
-      if (!res.ok) setErrorMsg(json.error);
-      else { setData(json); setRawOcr(json.raw_text || ""); }
-    } catch (err: any) { setErrorMsg(err.message); }
-    finally { setLoading(false); }
-  };
-
-  const openSimasy = () => {
-    if (!data?.nik) return;
-    const nik16 = data.nik.replace(/\D/g, "").slice(0,16);
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `https://simasy.id/u/fianggota1_u.php?txt_noktp=${nik16}&statuskirim=1&autofill=1`;
-    form.target = "_blank";
-    form.style.display = "none";
-    const payload: Record<string,string> = {
-      txt_noktp: nik16, nik: nik16, statuskirim: "1",
-      no_anggota: data.no_anggota || "2215090967270",
-      nama: data.nama || "",
-    };
-    Object.entries(payload).forEach(([k,v])=>{
-      const i = document.createElement("input");
-      i.type="hidden"; i.name=k; i.value=v;
-      form.appendChild(i);
-    });
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(()=>form.remove(), 1000);
-  };
-
-  return (
-    <div style={{ maxWidth: 800, margin: "0 auto", padding: 20, fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 20, fontWeight: "bold" }}>KTP - Input Simasy (OCR Only)</h1>
-      <p style={{ fontSize: 11, color: "#666" }}>FIX v11 FINAL 3000px - Rekam Data oleh Admin/Petugas</p>
-      
-      <div style={{ border: "1px solid #ccc", padding: 15, borderRadius: 8, marginTop: 15 }}>
-        <input type="file" accept="image/*" onChange={handleFileChange} />
-        {preview && <div style={{ marginTop: 10 }}><img src={preview} alt="preview" style={{ maxWidth: "100%", maxHeight: 380, border: "1px solid #ddd", borderRadius: 6 }} /></div>}
-        <button onClick={handleUpload} disabled={!file || loading} style={{ marginTop: 12, background: "#0F8A5F", color: "#fff", padding: "10px 18px", borderRadius: 8, border: "none", fontWeight: "bold", cursor: "pointer", opacity: !file || loading ? 0.5 : 1 }}>
-          {loading ? "Membaca KTP..." : "📷 Baca KTP+KTA"}
-        </button>
-        {errorMsg && <div style={{ color: "#b91c1c", background: "#fef2f2", padding: 8, borderRadius: 6, marginTop: 10, fontSize: 13 }}>⚠ {errorMsg}</div>}
-      </div>
-
-      {data && (
-        <div style={{ marginTop: 20, border: "2px solid #0F8A5F", borderRadius: 10, padding: 15, background: "#f9fffe" }}>
-          <h2 style={{ fontWeight: "bold" }}>HASIL OCR - Siap untuk Admin</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "140px 1fr", rowGap: 6, fontSize: 14, marginTop: 10 }}>
-            <b>NIK:</b> <span>{data.nik}</span>
-            <b>Nama:</b> <span>{data.nama}</span>
-            <b>No Anggota:</b> <span>{data.no_anggota}</span>
-            <b>Alamat:</b> <span>{data.alamat}</span>
-            <b>Kel/Desa:</b> <span>{data.kel_desa}</span>
-          </div>
-          <button onClick={openSimasy} style={{ marginTop: 15, background: "#000", color: "#fff", padding: "14px 18px", borderRadius: 10, width: "100%", fontWeight: "bold", fontSize: 15, cursor: "pointer" }}>
-            🚀 Buka di Simasy.id (Admin Klik Rekam Data)
-          </button>
-          <p style={{ fontSize: 11, color: "#888", marginTop: 8 }}>Tugas Next.js hanya sampai buka Simasy, Rekam Data dilakukan admin/petugas di simasy.id</p>
-          <details style={{ marginTop: 12 }}><summary style={{ fontSize: 12, cursor: "pointer" }}>Raw OCR</summary><pre style={{ fontSize: 10, background: "#f5f5f5", padding: 8, whiteSpace: "pre-wrap" }}>{rawOcr}</pre></details>
-        </div>
-      )}
-    </div>
-  );
+function parseKTP(rawText:string, fileName:string): KTPData {
+  let nik=rawText.match(/\b\d{16}\b/)?.[0]||''; if(!nik){const m=fileName.match(/\b\d{16}\b/); if(m) nik=m[0];}
+  const get=(keys:string[])=>{ for(let k of keys){ const re=new RegExp(k+'\\s*:?\\s*([^\\n\\r]+)','i'); const m=rawText.match(re); if(m){ let v=m[1].trim(); if(v.toUpperCase().includes('TEMPAT/TGL LAHIR')||v.toUpperCase().includes('ALAMAT')||v.toUpperCase().includes('RT/RW')||v.toUpperCase().includes('NIK')) continue; if(k.toLowerCase().includes('nama')&&v.toUpperCase()==='NIK') continue; if(k.toLowerCase().includes('jenis kelamin')) v=v.split(/Gol/i)[0].trim(); if(v&&v.length>1) return v; } } return ''; };
+  let ttlOCR=get(['Tempat/Tgl Lahir']); let tempatOCR=ttlOCR.split(',')[0]?.trim()||'JAKARTA'; let ttl=nik.length===16?ttlFromNIK(nik, tempatOCR):ttlOCR||`${tempatOCR}, (MM/DD/TTTT)`;
+  let jk=rawText.match(/PEREMPUAN|LAKI-LAKI/i)?.[0]||''; if(!jk&&nik.length===16) jk=parseInt(nik.substring(6,8),10)>40?'PEREMPUAN':'LAKI-LAKI';
+  let rtrwM=rawText.match(/RT\s*\/\s*RW\s*[:\s]*(\d{1,3})\s*\/\s*(\d{1,3})/i); let rtrw=rtrwM?`${rtrwM[1].padStart(3,'0')}/${rtrwM[2].padStart(3,'0')}`:(get(['RT/RW'])||'');
+  return { nik, nama:get(['Nama']), ttl, jk, alamat:get(['Alamat']), rt_rw:rtrw, kel:get(['Kel/Desa']), kec:get(['Kecamatan']), agama:get(['Agama']), status:get(['Status Perkawinan']), kerja:get(['Pekerjaan']), raw_text:rawText };
+}
+export default function Page(){
+ const [preview,setPreview]=useState(''); const [raw,setRaw]=useState(''); const [loading,setLoading]=useState(false);
+ const [data,setData]=useState<KTPData>(EMPTY); const fileInputRef=useRef<HTMLInputElement>(null); const [fileKey,setFileKey]=useState(0);
+ const callOCR=async(dataUrl:string)=>{ setLoading(true); try{ const res=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:dataUrl})}); const json=await res.json(); return json.ParsedResults?.[0]?.ParsedText||''; }catch(e){return ''} finally{setLoading(false)} };
+ const handleFile=async(file:File)=>{ setData(EMPTY); setRaw(''); setPreview(''); try{localStorage.removeItem(LS_KEY); localStorage.removeItem('SIMASY_KTP_DATA')}catch{} const url=URL.createObjectURL(file); const img=new Image(); img.src=url; await new Promise(r=>{img.onload=r; img.onerror=r;}); const canvas=document.createElement('canvas'); const max=1800; let w=img.width,h=img.height; if(w>max||h>max){const ra=Math.min(max/w,max/h); w*=ra; h*=ra;} canvas.width=w; canvas.height=h; canvas.getContext('2d')!.drawImage(img,0,0,w,h); const dataUrl=canvas.toDataURL('image/jpeg',0.8); setPreview(dataUrl); let text=await callOCR(dataUrl); setRaw(text||'(OCR kosong)'); const parsed=parseKTP(text||'',file.name); setData(parsed); };
+ const bukaSimasy=()=>{ if(data.nik.length!==16) return alert('NIK 16 digit!'); try{localStorage.setItem(LS_KEY,JSON.stringify(data))}catch{} const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data)))); window.open(`https://simasy.id/anggt/fianggota0.php?nik=${data.nik}&autofill=1&data=${encodeURIComponent(b64)}`,'_blank'); };
+ const bukaViaIndex=()=>{ if(data.nik.length!==16) return alert('NIK 16 digit!'); try{localStorage.setItem(LS_KEY,JSON.stringify(data))}catch{} const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data)))); window.open(`https://simasy.id/anggt/index.php?nik=${data.nik}&autofill=1&data=${encodeURIComponent(b64)}`,'_blank'); };
+ const resetAll=()=>{ setData(EMPTY); setPreview(''); setRaw(''); setFileKey(k=>k+1); try{localStorage.removeItem(LS_KEY); localStorage.removeItem('SIMASY_KTP_DATA'); sessionStorage.clear()}catch{} if(fileInputRef.current) fileInputRef.current.value=''; };
+ return (<div style={{maxWidth:860,margin:'0 auto',padding:16,fontFamily:'system-ui'}}><div style={{background:'#000',color:'#fff',padding:14,borderRadius:12,textAlign:'center'}}><div style={{fontSize:22,fontWeight:'bold',letterSpacing:2}}>PARTAI MASYUMI</div><div style={{fontSize:12,opacity:0.8}}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v4.1 MASYUMI</div><div style={{fontSize:11,marginTop:6,background:'#FFD700',color:'#000',display:'inline-block',padding:'4px 10px',borderRadius:20,fontWeight:'bold'}}>LS_KEY: MASYUMI_KTP_DATA - MM/DD/TTTT pos7-8 -40 wanita - IFRAME MODE</div></div><div style={{display:'flex',gap:8,margin:'12px 0'}}><input key={fileKey} ref={fileInputRef} type="file" accept="image/*" onChange={e=>e.target.files&&handleFile(e.target.files[0])} style={{flex:1}} /><button onClick={resetAll} style={{background:'red',color:'#fff',padding:'8px 14px',borderRadius:8,fontWeight:'bold'}}>RESET TOTAL</button></div>{loading&&<p>OCR via /api/ocr...</p>}{preview&&<img src={preview} style={{maxWidth:'100%',border:'3px solid #0f8a5f',borderRadius:10}} alt="KTP"/>}<div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:8,marginTop:14,border:'2px solid #000',padding:14,borderRadius:12,background:'#FFFEF0'}}><b>NIK (16 digit):</b><div style={{display:'flex',gap:6}}><input value={data.nik} onChange={e=>{const c=e.target.value.replace(/\D/g,'').slice(0,16); const t=data.ttl.split(',')[0]||'JAKARTA'; setData({...data, nik:c, ttl:c.length===16?ttlFromNIK(c,t):data.ttl, jk:c.length===16?(parseInt(c.substring(6,8))>40?'PEREMPUAN':'LAKI-LAKI'):data.jk})}} placeholder="KOSONG - upload KTP Masyumi" style={{flex:1,padding:10,border:'3px solid #000',borderRadius:6,fontWeight:'bold',fontSize:15}}/><span style={{padding:8,background:'#000',color:'#0f0',borderRadius:6,fontSize:11}}>{data.nik.length===16?`pos7-8=${data.nik.substring(6,8)}`:''}</span></div><b>Nama :</b><input value={data.nama} onChange={e=>setData({...data,nama:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Tempat/Tgl Lahir :</b><input value={data.ttl} onChange={e=>setData({...data,ttl:e.target.value})} style={{padding:8,border:'2px solid #000',borderRadius:6,background:'#000',color:'#fff',fontWeight:'bold'}}/><b>Jenis Kelamin :</b><select value={data.jk} onChange={e=>setData({...data,jk:e.target.value})} style={{padding:8,borderRadius:6}}><option value="">Pilih</option><option>LAKI-LAKI</option><option>PEREMPUAN</option></select><b>Alamat :</b><input value={data.alamat} onChange={e=>setData({...data,alamat:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>RT/RW :</b><input value={data.rt_rw} onChange={e=>setData({...data,rt_rw:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kel/Desa :</b><input value={data.kel} onChange={e=>setData({...data,kel:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kecamatan :</b><input value={data.kec} onChange={e=>setData({...data,kec:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/></div><button onClick={bukaViaIndex} style={{marginTop:14,background:'#000',color:'#fff',padding:'16px',width:'100%',borderRadius:10,fontWeight:'bold',fontSize:16,cursor:'pointer'}}>BUKA simasy.id/anggt/index.php?nik={data.nik||'(isi dulu)'} - VIA IFRAME MASYUMI (disarankan)</button><button onClick={bukaSimasy} style={{marginTop:8,background:'#fff',color:'#000',border:'2px solid #000',padding:'12px',width:'100%',borderRadius:10,fontWeight:'bold',cursor:'pointer'}}>ATAU BUKA LANGSUNG fianggota0.php?nik={data.nik||'(isi dulu)'}</button><pre style={{marginTop:10,whiteSpace:'pre-wrap',fontSize:11,background:'#f5f5f5',padding:8,borderRadius:6}}>{raw.slice(0,1500)}</pre></div>);
 }
