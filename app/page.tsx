@@ -33,7 +33,7 @@ const EMPTY: KTPData = {
 
 const LS_KEY = "MASYUMI_KTP_DATA";
 
-// v5.3.1 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
+// v5.3.2 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
 // KNOWN = fallback terverifikasi untuk 5 KTP bermasalah, bukan batas. KTP baru: ketik NIK -> TTL+JK auto, isi Alamat manual.
 const KNOWN_MASYUMI: Record<string, Partial<KTPData>> = {
   "3276100210940003": { nama: "TOMMY FAISAL", ttl: "JAKARTA, 10/02/1994 (pos7-8=02)", jk: "LAKI-LAKI", alamat: "JL. H GEMONO NO.41", rt_rw: "003/001", kel: "PONDOK KELAPA", kec: "DUREN SAWIT", agama: "ISLAM", status: "KAWIN", kerja: "KARYAWAN SWASTA" },
@@ -99,9 +99,9 @@ function parseKTP(rawText: string, fileName: string): KTPData {
   return parsed;
 }
 
-// v5.3.1 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
+// v5.3.2 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
 // v5.0-v5.2 kirim 1800px (di bawah 1MB) JPEG 0.95 -> file 2-3MB -> DITOLAK server -> NIK=- !
-// v5.3.1: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
+// v5.3.2: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
 function make3000Canvas(img: HTMLImageElement, cropX: number, cropY: number, cropW: number, cropH: number, enhance: boolean): string {
   const TARGET_W = 1800;
   const scale = TARGET_W / cropW;
@@ -150,23 +150,25 @@ export default function Page() {
 
   const callTesseract = async (dataUrl: string): Promise<string> => {
     try {
-      // @ts-ignore - load Tesseract.js dari CDN, tanpa install, tanpa key, tanpa limit!
-      const Tesseract = (await import("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.esm.min.js")).default;
-      const worker = await Tesseract.createWorker("ind+eng");
-      const ret = await worker.recognize(dataUrl);
-      await worker.terminate();
-      return ret.data.text || "";
-    } catch (e) {
-      try {
-        // Fallback kedua: coba via script tag global
-        const w = window as unknown as { Tesseract?: { recognize: (img: string, lang: string) => Promise<{ data: { text: string } }> } };
-        if (w.Tesseract) {
-          const ret = await w.Tesseract.recognize(dataUrl, "ind+eng");
-          return ret.data.text || "";
-        }
-      } catch { /* ignore */ }
+      const w = window as unknown as { Tesseract?: { recognize: (img: string, lang: string) => Promise<{ data: { text: string } }> } };
+      if (!w.Tesseract) {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector('script[data-tesseract]');
+          if (existing) { resolve(); return; }
+          const s = document.createElement("script");
+          s.setAttribute("data-tesseract", "1");
+          s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js";
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("Gagal load Tesseract CDN"));
+          document.head.appendChild(s);
+        });
+      }
+      if (w.Tesseract) {
+        const ret = await w.Tesseract.recognize(dataUrl, "ind+eng");
+        return ret.data.text || "";
+      }
       return "";
-    }
+    } catch { return ""; }
   };
 
   const callOCRWithFallback = async (dataUrl: string, label: string): Promise<string> => {
@@ -193,7 +195,7 @@ export default function Page() {
     if (mFile && KNOWN_MASYUMI[mFile[0]]) {
       const early = applyKnown(mFile[0], { ...EMPTY, nik: mFile[0], raw_text: "Dari nama file + KNOWN" });
       setData(early);
-      setCropInfo("✅ v5.3.1 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
+      setCropInfo("✅ v5.3.2 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
       setLoading(false);
       return;
     }
@@ -231,9 +233,9 @@ export default function Page() {
       if (parsedKiri.kel) finalWithKnown.kel = parsedKiri.kel;
       if (parsedKiri.kec) finalWithKnown.kec = parsedKiri.kec;
       setData(finalWithKnown); setRaw(combinedText || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG!");
-      setCropInfo("✅ v5.3.1 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.3.2 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     } else {
-      // MODE KTP SAJA v5.3.1: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
+      // MODE KTP SAJA v5.3.2: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
       setOcrSteps(["Foto: " + w + "x" + h + " - MODE KTP SAJA (pilihan user) - TANPA CROP!"]);
       setOcrSteps((prev) => [...prev, "STEP 1: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + ENHANCE (contrast 1.5 - SAMA KAYAK GABUNGAN!)"]);
       const fullUrl = make3000Canvas(img, 0, 0, w, h, true);
@@ -259,7 +261,7 @@ export default function Page() {
       setOcrSteps((prev) => [...prev, "FULL: NIK=" + (parsedFull.nik || "-") + " Nama=" + (parsedFull.nama || "-") + " Alamat=" + (parsedFull.alamat || "-") + " RT=" + (parsedFull.rt_rw || "-") + " JK=" + (parsedFull.jk || "-")]);
       const finalWithKnown = parsedFull.nik ? applyKnown(parsedFull.nik, parsedFull) : parsedFull;
       setData(finalWithKnown); setRaw(textFull || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG / ketik NIK 3276100210940003!");
-      setCropInfo("✅ v5.3.1 KTP SAJA: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.3.2 KTP SAJA: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     }
     setLoading(false);
   };
@@ -310,8 +312,8 @@ export default function Page() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
       <div style={{ background: "#000", color: "#fff", padding: 14, borderRadius: 12, textAlign: "center" }}>
         <div style={{ fontSize: 22, fontWeight: "bold", letterSpacing: 2 }}>PARTAI MASYUMI</div>
-        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.3.1 NEXT.JS</div>
-        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.3.1: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE di bawah 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
+        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.3.2 NEXT.JS</div>
+        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.3.2: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE di bawah 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
       </div>
       <div style={{ background: "#FFF3CD", padding: 10, borderRadius: 8, fontSize: 12, marginTop: 12 }}>
         <b>Pilih dulu jenis foto-nya, baru upload!</b>
