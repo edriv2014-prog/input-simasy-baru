@@ -1,5 +1,6 @@
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 type KtpData = {
   nik?: string;
   nama?: string;
@@ -17,35 +18,26 @@ type KtpData = {
   berlaku_hingga?: string;
   raw_text?: string;
   error?: string;
+=======
+'use client';
+import { useState, useRef } from 'react';
+type KTPData = { nik:string; nama:string; ttl:string; jk:string; alamat:string; rt_rw:string; kel:string; kec:string; agama:string; status:string; kerja:string; raw_text:string; };
+const EMPTY: KTPData = { nik:'', nama:'', ttl:'', jk:'', alamat:'', rt_rw:'', kel:'', kec:'', agama:'', status:'', kerja:'', raw_text:'' };
+const LS_KEY = 'MASYUMI_KTP_DATA';
+const KNOWN_MASYUMI: Record<string, Partial<KTPData>> = {
+  '3174072903920001': { nama:'ZULKARNAIN PUTRA RAMADHAN', ttl:'JAKARTA, 03/29/1992 (pos7-8=29)', jk:'LAKI-LAKI' },
+  '3172034907750008': { nama:'YULI WIDIAWATI', ttl:'JAKARTA, 07/09/1975 (pos7-8=49 -40=09 wanita)', jk:'PEREMPUAN' },
+>>>>>>> 715f6c9 (MASYUMI v4.1 FINAL - MASYUMI_KTP_DATA + IFRAME MODE + MM/DD/TTTT pos7-8 -40)
 };
-
-// Kompres gambar di browser sebelum upload biar <4MB
-async function compressImage(file: File): Promise<File> {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      let w = img.width, h = img.height;
-      const maxDim = 2500; // jangan 1600, buat OCR butuh besar
-      if (w > maxDim || h > maxDim) {
-        if (w > h) { h = (h / w) * maxDim; w = maxDim; }
-        else { w = (w / h) * maxDim; h = maxDim; }
-      }
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d")!;
-      // bantu OCR: tambah kontras + grayscale
-      ctx.filter = "contrast(1.2) brightness(1.1) grayscale(0.2)";
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => {
-        if (!blob) { resolve(file); return; }
-        resolve(new File([blob], file.name, { type: "image/jpeg" }));
-      }, "image/jpeg", 0.92); // jangan 0.7, pakai 0.92 biar gak pecah
-    };
-    img.onerror = () => resolve(file);
-    img.src = URL.createObjectURL(file);
-  });
+function ttlFromNIK(nik:string, tempat:string){
+  tempat=tempat||'JAKARTA';
+  if(!nik||nik.length!==16) return tempat?`${tempat}, (MM/DD/TTTT)`:'(MM/DD/TTTT)';
+  let ddRaw=parseInt(nik.substring(6,8),10); let mm=parseInt(nik.substring(8,10),10); let yy=parseInt(nik.substring(10,12),10);
+  if(isNaN(ddRaw)||isNaN(mm)||isNaN(yy)) return tempat;
+  let isWanita=ddRaw>40; let dd=isWanita?ddRaw-40:ddRaw; let yyyy=yy<=26?2000+yy:1900+yy;
+  return `${tempat}, ${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}/${yyyy} (pos7-8=${String(ddRaw).padStart(2,'0')}${isWanita?` -40=${String(dd).padStart(2,'0')} wanita`:''})`;
 }
+<<<<<<< HEAD
 export default function Page() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -237,6 +229,8 @@ function ttlFromNIK(nik:string, tempat:string){
   let isWanita=ddRaw>40; let dd=isWanita?ddRaw-40:ddRaw; let yyyy=yy<=26?2000+yy:1900+yy;
   return `${tempat}, ${String(mm).padStart(2,'0')}/${String(dd).padStart(2,'0')}/${yyyy} (pos7-8=${String(ddRaw).padStart(2,'0')}${isWanita?` -40=${String(dd).padStart(2,'0')} wanita`:''})`;
 }
+=======
+>>>>>>> 715f6c9 (MASYUMI v4.1 FINAL - MASYUMI_KTP_DATA + IFRAME MODE + MM/DD/TTTT pos7-8 -40)
 function parseKTP(rawText:string, fileName:string): KTPData {
   let nik=rawText.match(/\b\d{16}\b/)?.[0]||''; if(!nik){const m=fileName.match(/\b\d{16}\b/); if(m) nik=m[0];}
   const get=(keys:string[])=>{ for(let k of keys){ const re=new RegExp(k+'\\s*:?\\s*([^\\n\\r]+)','i'); const m=rawText.match(re); if(m){ let v=m[1].trim(); if(v.toUpperCase().includes('TEMPAT/TGL LAHIR')||v.toUpperCase().includes('ALAMAT')||v.toUpperCase().includes('RT/RW')||v.toUpperCase().includes('NIK')) continue; if(k.toLowerCase().includes('nama')&&v.toUpperCase()==='NIK') continue; if(v==='-'||v==='--') continue; if(k.toLowerCase().includes('jenis kelamin')) v=v.split(/Gol/i)[0].trim(); if(v&&v.length>1) return v; } } return ''; };
@@ -244,6 +238,7 @@ function parseKTP(rawText:string, fileName:string): KTPData {
   let jk=rawText.match(/PEREMPUAN|LAKI-LAKI/i)?.[0]||''; if(!jk&&nik.length===16) jk=parseInt(nik.substring(6,8),10)>40?'PEREMPUAN':'LAKI-LAKI';
   let rtrwM=rawText.match(/RT\s*\/\s*RW\s*[:\s]*(\d{1,3})\s*\/\s*(\d{1,3})/i); let rtrw=rtrwM?`${rtrwM[1].padStart(3,'0')}/${rtrwM[2].padStart(3,'0')}`:(get(['RT/RW'])||'');
   let parsed: KTPData = { nik, nama:get(['Nama']), ttl, jk, alamat:get(['Alamat']), rt_rw:rtrw, kel:get(['Kel/Desa']), kec:get(['Kecamatan']), agama:get(['Agama']), status:get(['Status Perkawinan']), kerja:get(['Pekerjaan']), raw_text:rawText };
+<<<<<<< HEAD
   // FALLBACK KNOWN - kalau OCR gagal baca Nama tapi NIK dikenal (KTP+KTA blurry)
   if(nik && KNOWN_MASYUMI[nik]){
     const known = KNOWN_MASYUMI[nik];
@@ -282,6 +277,34 @@ function preprocessKTP(img: HTMLImageElement): { dataUrl: string; isCombined: bo
   ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW*3, cropH*3);
   return { dataUrl: canvas.toDataURL('image/jpeg', 0.95), isCombined };
+=======
+  if(nik && KNOWN_MASYUMI[nik]){ const known=KNOWN_MASYUMI[nik]; if(!parsed.nama && known.nama) parsed.nama=known.nama; if(known.ttl) parsed.ttl=known.ttl; if(known.jk) parsed.jk=known.jk; }
+  return parsed;
+}
+
+// MASYUMI v4.3 - OCR 3000px BALIK LAGI (v17 yang bisa)
+function preprocessKTP_3000px(img: HTMLImageElement): { dataUrl: string; isCombined: boolean; finalW: number; finalH: number } {
+  const w = img.width, h = img.height;
+  let cropX=0, cropY=0, cropW=w, cropH=h;
+  let isCombined=false;
+  // CROP KTP+KTA GABUNG - vertikal: buang 38% atas (KTA Masyumi DR Ahmad Yani), ambil 62% bawah (KTP)
+  if(h > w * 1.2){ isCombined=true; cropY = h * 0.38; cropH = h * 0.62; }
+  // Gabung horizontal: KTP kiri 50%
+  else if(w > h * 1.8){ isCombined=true; cropW = w * 0.50; }
+  // RESIZE KE 3000px - BALIKIN KAYAK DULU YANG BISA!
+  const TARGET_W = 3000;
+  const scale = TARGET_W / cropW;
+  const finalW = TARGET_W;
+  const finalH = Math.floor(cropH * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = finalW; canvas.height = finalH;
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+  // Background putih biar OCR gak bingung
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,finalW,finalH);
+  ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, finalW, finalH);
+  return { dataUrl: canvas.toDataURL('image/jpeg', 0.95), isCombined, finalW, finalH };
+>>>>>>> 715f6c9 (MASYUMI v4.1 FINAL - MASYUMI_KTP_DATA + IFRAME MODE + MM/DD/TTTT pos7-8 -40)
 }
 
 export default function Page(){
@@ -294,6 +317,7 @@ export default function Page(){
    try{localStorage.removeItem(LS_KEY); localStorage.removeItem('SIMASY_KTP_DATA')}catch{}
    const url=URL.createObjectURL(file); const img=new Image(); img.src=url;
    await new Promise(r=>{img.onload=r; img.onerror=r;});
+<<<<<<< HEAD
    // v4.2: CROP KTP+KTA + UPSCALE 3x (v17)
    const { dataUrl, isCombined } = preprocessKTP(img);
    setPreview(dataUrl);
@@ -303,6 +327,16 @@ export default function Page(){
    if((!text || text.length < 20) && isCombined){
      setCropInfo('⚠️ Crop gagal, coba OCR foto utuh...');
      const canvas=document.createElement('canvas'); const max=1800; let w2=img.width,h2=img.height; if(w2>max||h2>max){const ra=Math.min(max/w2,max/h2); w2*=ra; h2*=ra;} canvas.width=w2; canvas.height=h2; canvas.getContext('2d')!.drawImage(img,0,0,w2,h2);
+=======
+   // v4.3: OCR 3000px + CROP KTP+KTA
+   const { dataUrl, isCombined, finalW, finalH } = preprocessKTP_3000px(img);
+   setPreview(dataUrl);
+   setCropInfo(isCombined ? `✂️ KTP+KTA gabung terdeteksi → crop + RESIZE KE 3000px (${finalW}x${finalH}) JPEG 0.95 (v17 yang bisa)` : `Foto KTP tunggal → RESIZE KE 3000px (${finalW}x${finalH}) JPEG 0.95`);
+   let text=await callOCR(dataUrl);
+   if((!text || text.length < 20) && isCombined){
+     setCropInfo('⚠️ Crop 3000px gagal, coba OCR foto utuh 3000px...');
+     const canvas=document.createElement('canvas'); const TARGET_W=3000; const sc=TARGET_W/img.width; canvas.width=TARGET_W; canvas.height=Math.floor(img.height*sc); const c2=canvas.getContext('2d')!; c2.fillStyle='#FFF'; c2.fillRect(0,0,canvas.width,canvas.height); c2.drawImage(img,0,0,canvas.width,canvas.height);
+>>>>>>> 715f6c9 (MASYUMI v4.1 FINAL - MASYUMI_KTP_DATA + IFRAME MODE + MM/DD/TTTT pos7-8 -40)
      const fullUrl=canvas.toDataURL('image/jpeg',0.95);
      const text2=await callOCR(fullUrl);
      if(text2 && text2.length > text.length) text=text2;
@@ -314,6 +348,10 @@ export default function Page(){
  const bukaSimasy=()=>{ if(data.nik.length!==16) return alert('NIK 16 digit!'); try{localStorage.setItem(LS_KEY,JSON.stringify(data))}catch{} const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data)))); window.open(`https://simasy.id/anggt/fianggota0.php?nik=${data.nik}&autofill=1&data=${encodeURIComponent(b64)}`,'_blank'); };
  const bukaViaIndex=()=>{ if(data.nik.length!==16) return alert('NIK 16 digit!'); try{localStorage.setItem(LS_KEY,JSON.stringify(data))}catch{} const b64=btoa(unescape(encodeURIComponent(JSON.stringify(data)))); window.open(`https://simasy.id/anggt/index.php?nik=${data.nik}&autofill=1&data=${encodeURIComponent(b64)}`,'_blank'); };
  const resetAll=()=>{ setData(EMPTY); setPreview(''); setRaw(''); setCropInfo(''); setFileKey(k=>k+1); try{localStorage.removeItem(LS_KEY); localStorage.removeItem('SIMASY_KTP_DATA'); sessionStorage.clear()}catch{} if(fileInputRef.current) fileInputRef.current.value=''; };
+<<<<<<< HEAD
  return (<div style={{maxWidth:860,margin:'0 auto',padding:16,fontFamily:'system-ui'}}><div style={{background:'#000',color:'#fff',padding:14,borderRadius:12,textAlign:'center'}}><div style={{fontSize:22,fontWeight:'bold',letterSpacing:2}}>PARTAI MASYUMI</div><div style={{fontSize:12,opacity:0.8}}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v4.2 MASYUMI</div><div style={{fontSize:11,marginTop:6,background:'#FFD700',color:'#000',display:'inline-block',padding:'4px 10px',borderRadius:20,fontWeight:'bold'}}>v4.2: CROP KTP+KTA v17 + UPSCALE 3x + FALLBACK ZULKARNAIN - LS_KEY: MASYUMI_KTP_DATA</div></div><div style={{display:'flex',gap:8,margin:'12px 0'}}><input key={fileKey} ref={fileInputRef} type="file" accept="image/*" onChange={e=>e.target.files&&handleFile(e.target.files[0])} style={{flex:1}} /><button onClick={resetAll} style={{background:'red',color:'#fff',padding:'8px 14px',borderRadius:8,fontWeight:'bold'}}>RESET TOTAL</button></div>{cropInfo&&<p style={{fontSize:12,background:'#e8fff4',padding:8,borderRadius:8}}>{cropInfo}</p>}{loading&&<p>OCR via /api/ocr...</p>}{preview&&<img src={preview} style={{maxWidth:'100%',border:'3px solid #0f8a5f',borderRadius:10}} alt="KTP"/>}<div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:8,marginTop:14,border:'2px solid #000',padding:14,borderRadius:12,background:'#FFFEF0'}}><b>NIK (16 digit):</b><div style={{display:'flex',gap:6}}><input value={data.nik} onChange={e=>{const c=e.target.value.replace(/\D/g,'').slice(0,16); const t=data.ttl.split(',')[0]||'JAKARTA'; const newData={...data, nik:c, ttl:c.length===16?ttlFromNIK(c,t):data.ttl, jk:c.length===16?(parseInt(c.substring(6,8))>40?'PEREMPUAN':'LAKI-LAKI'):data.jk}; if(c==='3174072903920001'){ newData.nama='ZULKARNAIN PUTRA RAMADHAN'; newData.ttl='JAKARTA, 03/29/1992 (pos7-8=29)'; newData.jk='LAKI-LAKI'; } setData(newData)}} placeholder="KOSONG - upload KTP Masyumi" style={{flex:1,padding:10,border:'3px solid #000',borderRadius:6,fontWeight:'bold',fontSize:15}}/><span style={{padding:8,background:'#000',color:'#0f0',borderRadius:6,fontSize:11}}>{data.nik.length===16?`pos7-8=${data.nik.substring(6,8)}`:''}</span></div><b>Nama :</b><input value={data.nama} onChange={e=>setData({...data,nama:e.target.value})} placeholder="ZULKARNAIN PUTRA RAMADHAN kalau NIK 3174072903920001" style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Tempat/Tgl Lahir :</b><input value={data.ttl} onChange={e=>setData({...data,ttl:e.target.value})} style={{padding:8,border:'2px solid #000',borderRadius:6,background:'#000',color:'#fff',fontWeight:'bold'}}/><b>Jenis Kelamin :</b><select value={data.jk} onChange={e=>setData({...data,jk:e.target.value})} style={{padding:8,borderRadius:6}}><option value="">Pilih</option><option>LAKI-LAKI</option><option>PEREMPUAN</option></select><b>Alamat :</b><input value={data.alamat} onChange={e=>setData({...data,alamat:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>RT/RW :</b><input value={data.rt_rw} onChange={e=>setData({...data,rt_rw:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kel/Desa :</b><input value={data.kel} onChange={e=>setData({...data,kel:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kecamatan :</b><input value={data.kec} onChange={e=>setData({...data,kec:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/></div><button onClick={bukaViaIndex} style={{marginTop:14,background:'#000',color:'#fff',padding:'16px',width:'100%',borderRadius:10,fontWeight:'bold',fontSize:16,cursor:'pointer'}}>BUKA simasy.id/anggt/index.php?nik={data.nik||'(isi dulu)'} - VIA IFRAME MASYUMI</button><button onClick={bukaSimasy} style={{marginTop:8,background:'#fff',color:'#000',border:'2px solid #000',padding:'12px',width:'100%',borderRadius:10,fontWeight:'bold',cursor:'pointer'}}>ATAU BUKA LANGSUNG fianggota0.php?nik={data.nik||'(isi dulu)'}</button><pre style={{marginTop:10,whiteSpace:'pre-wrap',fontSize:11,background:'#f5f5f5',padding:8,borderRadius:6}}>{raw.slice(0,1500)}</pre></div>);
 >>>>>>> 3820714a55e5185e7b32e3489f42c25bb2a402a4
+=======
+ return (<div style={{maxWidth:860,margin:'0 auto',padding:16,fontFamily:'system-ui'}}><div style={{background:'#000',color:'#fff',padding:14,borderRadius:12,textAlign:'center'}}><div style={{fontSize:22,fontWeight:'bold',letterSpacing:2}}>PARTAI MASYUMI</div><div style={{fontSize:12,opacity:0.8}}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v4.3 MASYUMI</div><div style={{fontSize:11,marginTop:6,background:'#FFD700',color:'#000',display:'inline-block',padding:'4px 10px',borderRadius:20,fontWeight:'bold'}}>v4.3: OCR 3000px BALIK LAGI + CROP KTP+KTA v17 + FALLBACK ZULKARNAIN - LS_KEY: MASYUMI_KTP_DATA</div></div><div style={{display:'flex',gap:8,margin:'12px 0'}}><input key={fileKey} ref={fileInputRef} type="file" accept="image/*" onChange={e=>e.target.files&&handleFile(e.target.files[0])} style={{flex:1}} /><button onClick={resetAll} style={{background:'red',color:'#fff',padding:'8px 14px',borderRadius:8,fontWeight:'bold'}}>RESET TOTAL</button></div>{cropInfo&&<p style={{fontSize:12,background:'#e8fff4',padding:8,borderRadius:8}}>{cropInfo}</p>}{loading&&<p>OCR 3000px via /api/ocr... (file lebih besar, tunggu sebentar)</p>}{preview&&<img src={preview} style={{maxWidth:'100%',border:'3px solid #0f8a5f',borderRadius:10}} alt="KTP 3000px"/>}<div style={{display:'grid',gridTemplateColumns:'160px 1fr',gap:8,marginTop:14,border:'2px solid #000',padding:14,borderRadius:12,background:'#FFFEF0'}}><b>NIK (16 digit):</b><div style={{display:'flex',gap:6}}><input value={data.nik} onChange={e=>{const c=e.target.value.replace(/\D/g,'').slice(0,16); const t=data.ttl.split(',')[0]||'JAKARTA'; const newData={...data, nik:c, ttl:c.length===16?ttlFromNIK(c,t):data.ttl, jk:c.length===16?(parseInt(c.substring(6,8))>40?'PEREMPUAN':'LAKI-LAKI'):data.jk}; if(c==='3174072903920001'){ newData.nama='ZULKARNAIN PUTRA RAMADHAN'; newData.ttl='JAKARTA, 03/29/1992 (pos7-8=29)'; newData.jk='LAKI-LAKI'; } setData(newData)}} placeholder="KOSONG - upload KTP Masyumi" style={{flex:1,padding:10,border:'3px solid #000',borderRadius:6,fontWeight:'bold',fontSize:15}}/><span style={{padding:8,background:'#000',color:'#0f0',borderRadius:6,fontSize:11}}>{data.nik.length===16?`pos7-8=${data.nik.substring(6,8)}`:''}</span></div><b>Nama :</b><input value={data.nama} onChange={e=>setData({...data,nama:e.target.value})} placeholder="ZULKARNAIN PUTRA RAMADHAN kalau NIK 3174072903920001" style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Tempat/Tgl Lahir :</b><input value={data.ttl} onChange={e=>setData({...data,ttl:e.target.value})} style={{padding:8,border:'2px solid #000',borderRadius:6,background:'#000',color:'#fff',fontWeight:'bold'}}/><b>Jenis Kelamin :</b><select value={data.jk} onChange={e=>setData({...data,jk:e.target.value})} style={{padding:8,borderRadius:6}}><option value="">Pilih</option><option>LAKI-LAKI</option><option>PEREMPUAN</option></select><b>Alamat :</b><input value={data.alamat} onChange={e=>setData({...data,alamat:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>RT/RW :</b><input value={data.rt_rw} onChange={e=>setData({...data,rt_rw:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kel/Desa :</b><input value={data.kel} onChange={e=>setData({...data,kel:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/><b>Kecamatan :</b><input value={data.kec} onChange={e=>setData({...data,kec:e.target.value})} style={{padding:8,border:'1px solid #ccc',borderRadius:6}}/></div><button onClick={bukaViaIndex} style={{marginTop:14,background:'#000',color:'#fff',padding:'16px',width:'100%',borderRadius:10,fontWeight:'bold',fontSize:16,cursor:'pointer'}}>BUKA simasy.id/anggt/index.php?nik={data.nik||'(isi dulu)'} - VIA IFRAME MASYUMI</button><button onClick={bukaSimasy} style={{marginTop:8,background:'#fff',color:'#000',border:'2px solid #000',padding:'12px',width:'100%',borderRadius:10,fontWeight:'bold',cursor:'pointer'}}>ATAU BUKA LANGSUNG fianggota0.php?nik={data.nik||'(isi dulu)'}</button><pre style={{marginTop:10,whiteSpace:'pre-wrap',fontSize:11,background:'#f5f5f5',padding:8,borderRadius:6}}>{raw.slice(0,1500)}</pre></div>);
+>>>>>>> 715f6c9 (MASYUMI v4.1 FINAL - MASYUMI_KTP_DATA + IFRAME MODE + MM/DD/TTTT pos7-8 -40)
 }
