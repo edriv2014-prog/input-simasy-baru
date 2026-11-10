@@ -5,7 +5,7 @@ export async function POST(req: NextRequest){
     const { image } = await req.json();
     const rawKeys = process.env.OCR_SPACE_API_KEYS || '';
     const OCR_KEYS = rawKeys.split(',').map((k:string)=>k.trim()).filter((k:string)=>k && !k.toUpperCase().startsWith('KEY'));
-    if(OCR_KEYS.length===0) return NextResponse.json({ error: 'OCR_SPACE_API_KEYS kosong' }, { status: 500 });
+    if(OCR_KEYS.length===0) return NextResponse.json({ error: 'OCR_SPACE_API_KEYS kosong - pakai tombol ISI LANGSUNG di v4.7!' }, { status: 500 });
     for(let key of OCR_KEYS){
       try{
         const form = new FormData();
@@ -18,6 +18,6 @@ export async function POST(req: NextRequest){
         if(json.ParsedResults?.[0]?.ParsedText) return NextResponse.json(json);
       }catch(e){ continue; }
     }
-    return NextResponse.json({ error: 'Semua key gagal' }, { status: 500 });
+    return NextResponse.json({ error: 'Semua key gagal - pakai tombol ISI LANGSUNG di v4.7!' }, { status: 500 });
   }catch(e){ return NextResponse.json({ error: String(e) }, { status: 500 }); }
 }
