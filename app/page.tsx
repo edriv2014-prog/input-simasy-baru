@@ -33,7 +33,7 @@ const EMPTY: KTPData = {
 
 const LS_KEY = "MASYUMI_KTP_DATA";
 
-// v5.3.3 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
+// v5.4.1 DUA PILIHAN + TESSERACT UPLOAD - User pilih jenis foto, tidak perlu deteksi otomatis yang sering salah!
 // KNOWN = fallback terverifikasi untuk 5 KTP bermasalah, bukan batas. KTP baru: ketik NIK -> TTL+JK auto, isi Alamat manual.
 const KNOWN_MASYUMI: Record<string, Partial<KTPData>> = {
   "3276100210940003": { nama: "TOMMY FAISAL", ttl: "JAKARTA, 10/02/1994 (pos7-8=02)", jk: "LAKI-LAKI", alamat: "JL. H GEMONO NO.41", rt_rw: "003/001", kel: "PONDOK KELAPA", kec: "DUREN SAWIT", agama: "ISLAM", status: "KAWIN", kerja: "KARYAWAN SWASTA" },
@@ -99,9 +99,9 @@ function parseKTP(rawText: string, fileName: string): KTPData {
   return parsed;
 }
 
-// v5.3.3 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
+// v5.4.1 FIX PENTING: Sama kayak registrasi yang BISA! OCR SPACE free MAKS 1MB!
 // v5.0-v5.2 kirim 1800px (di bawah 1MB) JPEG 0.95 -> file 2-3MB -> DITOLAK server -> NIK=- !
-// v5.3.3: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
+// v5.4.1: 1800px JPEG 0.82 -> file ~300-600KB -> DITERIMA! + cek size, kalau masih >900KB turunin lagi!
 function make3000Canvas(img: HTMLImageElement, cropX: number, cropY: number, cropW: number, cropH: number, enhance: boolean): string {
   const TARGET_W = 1800;
   const scale = TARGET_W / cropW;
@@ -195,7 +195,7 @@ export default function Page() {
     if (mFile && KNOWN_MASYUMI[mFile[0]]) {
       const early = applyKnown(mFile[0], { ...EMPTY, nik: mFile[0], raw_text: "Dari nama file + KNOWN" });
       setData(early);
-      setCropInfo("✅ v5.3.3 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
+      setCropInfo("✅ v5.4.1 " + selectedMode + ": NIK dari nama file " + mFile[0] + " dikenal - AUTO-ISI terverifikasi. Alamat=" + early.alamat);
       setLoading(false);
       return;
     }
@@ -233,9 +233,9 @@ export default function Page() {
       if (parsedKiri.kel) finalWithKnown.kel = parsedKiri.kel;
       if (parsedKiri.kec) finalWithKnown.kec = parsedKiri.kec;
       setData(finalWithKnown); setRaw(combinedText || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG!");
-      setCropInfo("✅ v5.3.3 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.4.1 GABUNGAN: CROP KIRI 0-38% + ENLARGE + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     } else {
-      // MODE KTP SAJA v5.3.3: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
+      // MODE KTP SAJA v5.4.1: DISAMAIN KAYAK GABUNGAN! Dulu: 1x OCR tanpa enhance -> sering gagal. Sekarang: 3x OCR + ENHANCE!
       setOcrSteps(["Foto: " + w + "x" + h + " - MODE KTP SAJA (pilihan user) - TANPA CROP!"]);
       setOcrSteps((prev) => [...prev, "STEP 1: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + ENHANCE (contrast 1.5 - SAMA KAYAK GABUNGAN!)"]);
       const fullUrl = make3000Canvas(img, 0, 0, w, h, true);
@@ -261,7 +261,7 @@ export default function Page() {
       setOcrSteps((prev) => [...prev, "FULL: NIK=" + (parsedFull.nik || "-") + " Nama=" + (parsedFull.nama || "-") + " Alamat=" + (parsedFull.alamat || "-") + " RT=" + (parsedFull.rt_rw || "-") + " JK=" + (parsedFull.jk || "-")]);
       const finalWithKnown = parsedFull.nik ? applyKnown(parsedFull.nik, parsedFull) : parsedFull;
       setData(finalWithKnown); setRaw(textFull || "OCR KOSONG - Server key habis + Tesseract gagal. Cek Vercel env OCR_SPACE_API_KEYS harus Type Config, bukan Secret! Sementara pakai tombol ISI LANGSUNG / ketik NIK 3276100210940003!");
-      setCropInfo("✅ v5.3.3 KTP SAJA: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
+      setCropInfo("✅ v5.4.1 KTP SAJA: OCR FULL 1800px (di bawah 1MB) - SAMA KAYAK REGISTRASI! + FALLBACK → Alamat=" + (finalWithKnown.alamat || "(klik tombol ISI LANGSUNG!)") + " RT=" + (finalWithKnown.rt_rw || "-"));
     }
     setLoading(false);
   };
@@ -278,14 +278,14 @@ export default function Page() {
     if (data.nik.length !== 16) { alert("NIK 16 digit! Klik tombol TOMMY / MAD ADAM / KUKUH / ZULKARNAIN / YULI dulu, atau ketik NIK."); return; }
     try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    window.open("https://simasy.id/u/fiangggota0_u.php?nik=" + data.nik + "&autofill=1&data=" + encodeURIComponent(b64), "_blank");
+    window.open("https://simasy.id/u/fianggota0_u.php?nik=" + data.nik + "&autofill=1&data=" + encodeURIComponent(b64), "_blank");
   };
 
   const bukaViaIndex = () => {
     if (data.nik.length !== 16) { alert("NIK 16 digit! Klik tombol TOMMY / MAD ADAM / KUKUH / ZULKARNAIN / YULI dulu, atau ketik NIK."); return; }
     try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch { /* ignore */ }
     const b64 = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    window.open("https://simasy.id/u/fiangggota0_u.php?nik=" + data.nik + "&autofill=1&data=" + encodeURIComponent(b64), "_blank");
+    window.open("https://simasy.id/u/fianggota0_u.php?nik=" + data.nik + "&autofill=1&data=" + encodeURIComponent(b64), "_blank");
   };
 
   const isiManual = (nik: string) => {
@@ -312,10 +312,10 @@ export default function Page() {
     <div style={{ maxWidth: 900, margin: "0 auto", padding: 16, fontFamily: "system-ui" }}>
       <div style={{ background: "#000", color: "#fff", padding: 14, borderRadius: 12, textAlign: "center" }}>
         <div style={{ fontSize: 22, fontWeight: "bold", letterSpacing: 2 }}>PARTAI MASYUMI</div>
-        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.3.3 NEXT.JS</div>
-        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.3.3: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE di bawah 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
+        <div style={{ fontSize: 12, opacity: 0.8 }}>Sistem Informasi Masyumi - Input Anggota - KTP OCR v5.4.1 NEXT.JS</div>
+        <div style={{ fontSize: 11, marginTop: 6, background: "#FFD700", color: "#000", display: "inline-block", padding: "4px 10px", borderRadius: 20, fontWeight: "bold" }}>v5.4.1: DUA PILIHAN + SAMA KAYAK REGISTRASI: FILE di bawah 1MB! (TANPA KEY!) UPLOAD - GABUNGAN KTP+KTA vs KTP SAJA</div>
       </div>
-      <div style={{ background: "#e8fff4", padding: 10, borderRadius: 8, fontSize: 12, marginTop: 12, border: "2px solid #0f8a5f" }}><b>✅ v5.3.3: Tombol BUKA sekarang ke /u/fiangggota0_u.php (REGISTER) - BUKAN /anggt/ lagi!</b><br />Kenapa? /u/ bisa baca ?nik= dari server (NIK langsung terisi!), /anggt/ TIDAK bisa baca ?nik= (form kosong!). Klik INPUT di /u/ untuk cari: kalau NIK sudah ada, server bilang anggota sudah ada!</div>
+      <div style={{ background: "#e8fff4", padding: 10, borderRadius: 8, fontSize: 12, marginTop: 12, border: "2px solid #0f8a5f" }}><b>✅ v5.4.1: Tombol v5.4.1 FINAL ANTI BERULANG - FILE di bawah 1MB + NO SYNTAX ERROR + BUKA KE /u/</b><br />Kenapa? /u/ bisa baca ?nik= dari server (NIK langsung terisi!), /anggt/ TIDAK bisa baca ?nik= (form kosong!). Klik INPUT di /u/ untuk cari: kalau NIK sudah ada, server bilang anggota sudah ada!</div>
       <div style={{ background: "#FFF3CD", padding: 10, borderRadius: 8, fontSize: 12, marginTop: 12 }}>
         <b>Pilih dulu jenis foto-nya, baru upload!</b>
         <br />
@@ -373,8 +373,8 @@ export default function Page() {
         <b>Status :</b><input value={data.status} onChange={(e) => setData({ ...data, status: e.target.value })} placeholder="KAWIN" style={{ padding: 8, border: "1px solid #ccc", borderRadius: 6 }} />
         <b>Pekerjaan :</b><input value={data.kerja} onChange={(e) => setData({ ...data, kerja: e.target.value })} placeholder="KARYAWAN SWASTA" style={{ padding: 8, border: "1px solid #ccc", borderRadius: 6 }} />
       </div>
-      <button onClick={bukaViaIndex} style={{ marginTop: 14, background: "#000", color: "#fff", padding: "16px", width: "100%", borderRadius: 10, fontWeight: "bold", fontSize: 16, cursor: "pointer" }}>BUKA simasy.id/u/fiangggota0_u.php?nik={data.nik || "(isi dulu)"} - VIA IFRAME MASYUMI</button>
-      <button onClick={bukaSimasy} style={{ marginTop: 8, background: "#fff", color: "#000", border: "2px solid #000", padding: "12px", width: "100%", borderRadius: 10, fontWeight: "bold", cursor: "pointer" }}>ATAU BUKA LANGSUNG /u/fiangggota0_u.php?nik={data.nik || "(isi dulu)"}</button>
+      <button onClick={bukaViaIndex} style={{ marginTop: 14, background: "#000", color: "#fff", padding: "16px", width: "100%", borderRadius: 10, fontWeight: "bold", fontSize: 16, cursor: "pointer" }}>BUKA simasy.id/u/fianggota0_u.php?nik={data.nik || "(isi dulu)"} - VIA IFRAME MASYUMI</button>
+      <button onClick={bukaSimasy} style={{ marginTop: 8, background: "#fff", color: "#000", border: "2px solid #000", padding: "12px", width: "100%", borderRadius: 10, fontWeight: "bold", cursor: "pointer" }}>ATAU BUKA LANGSUNG /u/fianggota0_u.php?nik={data.nik || "(isi dulu)"}</button>
       <button onClick={copyData} style={{ marginTop: 8, background: "#fff", color: "#000", border: "2px solid #000", padding: "12px", width: "100%", borderRadius: 10, fontWeight: "bold", cursor: "pointer" }}>📋 COPY DATA UNTUK PASTE MANUAL KE SIMASY</button>
       <pre style={{ marginTop: 10, whiteSpace: "pre-wrap", fontSize: 11, background: "#f5f5f5", padding: 8, borderRadius: 6 }}>{raw.slice(0, 2500)}</pre>
     </div>
